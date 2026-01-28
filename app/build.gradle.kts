@@ -41,8 +41,8 @@ android {
         buildConfig = true }
 
     signingConfigs {
-        val KeystorePath = "~/Downloads/Android签名密钥.jks"
-        if( file(KeystorePath).exists() == false ) {
+        val KeystorePath = System.getProperty("Android_Keystore_Path")
+        if( KeystorePath == null || file(KeystorePath).exists() == false ) {
             return@signingConfigs }
 
         create("release"){
