@@ -1,0 +1,49 @@
+name: 构建
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v6
+
+      - name: 安装JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: 使gradlew可执行
+        run: chmod +x ./gradlew
+
+      - name: 构建APK
+        run: ./gradlew assembleDebug assembleRelease
+
+      - name: 构建AAB
+        run: ./gradlew bundleDebug bundleRelease
+
+      - name: 输出信息
+        run: |
+          apt update
+          apt install tree -y
+          tree .
+          cat app/src/main/AndroidManifest.xml
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v6
+        with:
+          name: 所有构建产物
+          path: app/build/outputs/
+
+      - name: 上传安装包
+        uses: actions/upload-artifact@v6
+        with:
+          name: 安装包
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/release/app-release-unsigned.apk
+            app/build/outputs/bundle/debug/app-debug.aab
+            app/build/outputs/bundle/release/app-release.aab
