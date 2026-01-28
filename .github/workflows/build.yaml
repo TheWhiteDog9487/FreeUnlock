@@ -27,8 +27,8 @@ jobs:
 
       - name: 输出信息
         run: |
-          apt update
-          apt install tree -y
+          sudo apt update
+          sudo apt install tree -y
           tree .
           cat app/src/main/AndroidManifest.xml
 
