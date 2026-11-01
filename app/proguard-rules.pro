@@ -19,10 +19,3 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
-
-#-keep class com.highcapable.yukihookapi.** { *; }
-#-keep class com.highcapable.kavaref.** { *; }
-#-keep interface com.highcapable.yukihookapi.** { *; }
--dontwarn com.highcapable.yukihookapi.**
--dontwarn com.highcapable.kavaref.**
--dontwarn java.lang.reflect.AnnotatedType

@@ -6,20 +6,34 @@
 禁用Android中每72小时必须使用密码解锁屏幕的限制
 
 ## 使用方式
-1. 安装一个Xposed框架
+1. 安装一个支持libxposed 102的Xposed框架
 2. 在[Github Release](https://github.com/TheWhiteDog9487/FreeUnlock/releases/latest)中下载最新的Release版本APK
 3. 安装APK
-4. 打开您使用的Xposed管理器，启用模块并**勾选系统框架(包名应当为android)作为作用域**
+4. 打开您使用的Xposed管理器，启用模块并**勾选系统框架作为作用域**  
+   如果你不清楚自己应该勾选哪个App作为作用域，请寻找有没有App被标记为**此模块请求的应用**或类似描述，或者寻找一下你的Xposed管理器是否有一键勾选所有推荐作用域的按钮
 5. 重启设备
 6. 没了
 
 您应当能够在重启设备之后第一次使用密码解锁设备后在Xposed管理器的日志内看到模块打印的一条日志
 
 ## 支持的Android版本
-不明确，具体情况请自行测试  
+理论上支持从Android 8.0引入该机制以来的所有版本，但是受限于具体情况纷繁众多，还劳烦自行测试可用性  
 在我本人的设备上通过测试，确认功能有效的有：
-- Redmi K30 5G Picasso( Project Infinity X v3.5 | Android 16 Baklava | 由ManukaTM提供的非官方构建 )
-- Realme GT8 RMX6699( realme ui 7.0 16.0.2.473 | Android 16 Baklava | 国行官方系统 )
+- Redmi K30 5G Picasso | Project Infinity X v4.1 | Android 17 Cinnamon Bun | 由ManukaTM提供的非官方构建
+- Realme GT8 RMX6699 | ColorOS 17.0 17.0.0.111 CN01C10P02 | Android 17 Cinnamon Bun | 国行官方系统
+
+## 调试
+本模块在系统框架内注册了一个用于临时控制模块行为的广播接收器，没有保存机制，重启即恢复原状，你需要使用root或者adb来操控它  
+命令：
+```sh
+adb shell am broadcast -a xyz.thewhitedog9487.freeunlock.action.TEST --es command enable
+adb shell am broadcast -a xyz.thewhitedog9487.freeunlock.action.TEST --es command disable
+adb shell am broadcast -a xyz.thewhitedog9487.freeunlock.action.TEST --es command test
+```
+- `enable`: 启用模块功能
+- `disable`: 禁用模块功能
+- `test`: 临时关闭模块功能，并要求系统立刻调度一个强认证闹钟，在下一次解锁锁屏时要求进行强认证，成功完成强认证之后自动恢复模块功能  
+  注意：`test`功能仅在Android 11及以上可用
 
 ## 实现机制
 模块会拦截系统尝试设置强认证计时器的行为，没有计时器就不会触发强认证，没有强认证自然就安静了  
@@ -27,8 +41,9 @@
 
 ## 感谢
 - [HyperCeiler](https://github.com/ReChronoRain/HyperCeiler) 提供的注入点参考
-- [YukiHookAPI](https://github.com/HighCapable/YukiHookAPI) 提供的好用的代码注入API
+- [YukiHook](https://github.com/HighCapable/YukiHook) 提供的好用的代码注入API
 - [KavaRef](https://github.com/HighCapable/KavaRef) 提供的非常好用的基于Kotlin Lambda作为DSL的反射相关API
+- [DeepSeek](https://platform.deepseek.com) 让我这种笨蛋也能做出好用的东西
 
 ## 开源许可
 WTFPL

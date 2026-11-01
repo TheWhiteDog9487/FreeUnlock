@@ -4,22 +4,18 @@ pluginManagement {
             content {
                 includeGroupByRegex("com\\.android.*")
                 includeGroupByRegex("com\\.google.*")
-                includeGroupByRegex("androidx.*")
-            }
-        }
+                includeGroupByRegex("androidx.*") } }
         mavenCentral()
-        gradlePluginPortal()
-        maven("https://api.xposed.info/")
-    }
-}
+        gradlePluginPortal() } }
+
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
-        maven("https://api.xposed.info/")
-    }
-}
+        maven("https://raw.githubusercontent.com/HighCapable/maven-repository/main/repository/releases")
+        maven("https://api.xposed.info/") {
+            content {
+                includeGroup("de.robv.android.xposed") } } } }
 
 rootProject.name = "FreeUnlock"
 include(":app")
