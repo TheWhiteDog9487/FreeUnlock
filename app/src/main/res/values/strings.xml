@@ -1,4 +1,59 @@
 <resources>
     <string name="app_name">FreeUnlock</string>
     <string name="app_description">Disable the restriction that you must unlock the screen with a password every 72 hours</string>
+
+    <string name="NavigationBarIcon_Home">Home</string>
+    <string name="NavigationBarIcon_History">History</string>
+    <string name="NavigationBarIcon_About">About</string>
+
+    <string name="TopBar_RefreshLogs">Refresh</string>
+    <string name="TopBar_ClearLogs">Clear</string>
+    <string name="TopBar_ExportLogs">Export</string>
+    <string name="TopBar_ShareLogs">Share</string>
+
+    <string name="Home_ModuleStatus_Active">Module activated</string>
+    <string name="Home_ModuleStatus_ActiveDescription">Working normally (○｀ 3′○)</string>
+    <string name="Home_ModuleStatus_Checking">Checking</string>
+    <string name="Home_ModuleStatus_Inactive">Module not activated</string>
+    <string name="Home_ModuleStatus_InactiveDescription_TapToActivate">Tap here to activate the module</string>
+    <string name="Home_ModuleStatus_InactiveDescription_NoXposedFramework">Please install a libxposed framework first</string>
+    <string name="Home_ModuleStatus_InactiveDescription_NeedReboot">The module is enabled but not yet loaded into the system framework, please reboot the device</string>
+
+    <string name="Home_XposedFrameworkInfo">Framework information</string>
+    <string name="Home_XposedFrameworkInfo_FrameworkStatus">Framework status</string>
+    <string name="Home_XposedFrameworkInfo_HookStatus">Hook status</string>
+    <string name="Home_XposedFrameworkInfo_FrameworkName">Framework name</string>
+    <string name="Home_XposedFrameworkInfo_FrameworkVersion">Framework version</string>
+    <string name="Home_XposedFrameworkInfo_XposedApiVersion">libxposed API version</string>
+    <string name="Home_XposedFrameworkInfo_Runtime">Runtime</string>
+
+    <string name="Home_XposedFrameworkInfo_FrameworkStatus_Checking">Checking</string>
+    <string name="Home_XposedFrameworkInfo_FrameworkStatus_Active">Activated</string>
+    <string name="Home_XposedFrameworkInfo_FrameworkStatus_Inactive">Not activated</string>
+    <string name="Home_XposedFrameworkInfo_FrameworkStatus_Connected">Connected</string>
+    <string name="Home_XposedFrameworkInfo_FrameworkStatus_Disconnected">Disconnected</string>
+
+    <string name="Home_ModuleSettings">Module settings</string>
+    <string name="Home_ModuleSettings_FeatureEnable">Module features</string>
+    <string name="Home_ModuleSettings_RequestStrongAuth">Request strong authentication</string>
+    <string name="Home_ModuleSettings_RequestStrongAuth_Success">Strong authentication scheduled, it will take effect the next time you unlock</string>
+    <string name="Home_ModuleSettings_RequestStrongAuth_Failed">Failed to schedule strong authentication, check the logs</string>
+
+    <string name="Home_OtherFeatures">Convenience features</string>
+    <string name="Home_OtherFeatures_OpenDeveloperOptions">Open developer options</string>
+    <string name="Home_OtherFeatures_OpenDeveloperOptions_Failed">Failed to open developer options</string>
+    <string name="Home_OtherFeatures_OpenWirelessDebugging">Open wireless debugging</string>
+    <string name="Home_OtherFeatures_OpenWirelessDebugging_Failed">Failed to open wireless debugging</string>
+
+    <string name="LogHistory_Empty">Nothing here yet</string>
+    <string name="LogHistory_ExportFailed">Failed to export logs</string>
+    <string name="LogHistory_ShareFailed">Failed to share logs</string>
+
+    <string name="About_Info_MinSDK">Minimum SDK:</string>
+    <string name="About_Info_TargetSDK">Target SDK:</string>
+    <string name="About_Link_SourceCode">Source Code</string>
+    <string name="About_Link_ReportBug">Report Bug</string>
+    <string name="About_Info_AppVersionName">App Version:</string>
+    <string name="About_Info_AppVersionCode">App Version Code:</string>
+    <string name="About_Info_SystemVersion">System Version:</string>
 </resources>

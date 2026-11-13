@@ -19,12 +19,15 @@
 ## 支持的Android版本
 理论上支持从Android 8.0引入该机制以来的所有版本，但是受限于具体情况纷繁众多，还劳烦自行测试可用性  
 在我本人的设备上通过测试，确认功能有效的有：
-- Redmi K30 5G Picasso | Project Infinity X v4.1 | Android 17 Cinnamon Bun | 由ManukaTM提供的非官方构建
+- Redmi K30 5G Picasso | Project InfinityX v4.1 | Android 17 Cinnamon Bun | 由ManukaTM提供的非官方构建
 - Realme GT8 RMX6699 | ColorOS 17.0 17.0.0.111 CN01C10P02 | Android 17 Cinnamon Bun | 国行官方系统
 
 ## 调试
-本模块在系统框架内注册了一个用于临时控制模块行为的广播接收器，没有保存机制，重启即恢复原状，你需要使用root或者adb来操控它  
-命令：
+你可以直接打开模块的App来控制开关，里面还附赠了一些小功能  
+另外也在系统框架内注册了一个用于临时控制模块行为的广播接收器，你需要使用root或者adb来操控它  
+模块的开启和关闭状态都是储存在内存中的，没有保存机制，重启即丢失  
+当然如果你想彻底关掉的话直接在Xposed管理器里禁用模块然后重启一下就可以了对吧，App和adb的开关是给临时测试使用的  
+
 ```sh
 adb shell am broadcast -a xyz.thewhitedog9487.freeunlock.action.TEST --es command enable
 adb shell am broadcast -a xyz.thewhitedog9487.freeunlock.action.TEST --es command disable
@@ -37,7 +40,7 @@ adb shell am broadcast -a xyz.thewhitedog9487.freeunlock.action.TEST --es comman
 
 ## 实现机制
 模块会拦截系统尝试设置强认证计时器的行为，没有计时器就不会触发强认证，没有强认证自然就安静了  
-具体请参考[源代码](https://github.com/TheWhiteDog9487/FreeUnlock/blob/%E4%B8%BB%E8%A6%81/app/src/main/java/xyz/thewhitedog9487/freeunlock/xposed/HookMain.kt)
+具体请参考[源代码](https://github.com/TheWhiteDog9487/FreeUnlock/blob/%E4%B8%BB%E8%A6%81/app/src/main/java/xyz/thewhitedog9487/freeunlock/Xposed/HookMain.kt)
 
 ## 感谢
 - [HyperCeiler](https://github.com/ReChronoRain/HyperCeiler) 提供的注入点参考

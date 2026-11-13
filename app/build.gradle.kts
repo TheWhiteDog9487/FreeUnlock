@@ -5,7 +5,8 @@ plugins {
     alias(libs.plugins.android.application)
 
     alias(libs.plugins.ksp)
-    alias(libs.plugins.kotlin.android) }
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose) }
 
 android {
     namespace = "xyz.thewhitedog9487.freeunlock"
@@ -16,8 +17,8 @@ android {
         applicationId = "xyz.thewhitedog9487.freeunlock"
         minSdk = 26
         targetSdk = 37
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
 
     signingConfigs {
@@ -48,28 +49,45 @@ android {
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17 }
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 
     buildFeatures {
-        buildConfig = true } }
+        buildConfig = true
+        compose = true } }
 
 base {
     archivesName.set("FreeUnlock-${android.defaultConfig.versionName}-${android.defaultConfig.versionCode}") }
 
 dependencies {
+    implementation(libs.androidx.annotation)
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core)
+    implementation(libs.androidx.lifecycle.runtime)
+    implementation(libs.androidx.activity.compose)
+
     implementation(libs.androidx.core.ktx)
-//    implementation(libs.androidx.appcompat)
-//    implementation(libs.material)
-//    testImplementation(libs.junit)
-//    androidTestImplementation(libs.androidx.junit)
-//    androidTestImplementation(libs.androidx.espresso.core)
-//    implementation(libs.androidx.annotation)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+
+    //    testImplementation(libs.junit)
+    //    androidTestImplementation(libs.androidx.junit)
+    //    androidTestImplementation(libs.androidx.espresso.core)
+
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+
+//    androidTestImplementation(platform(libs.androidx.compose.bom))
+//    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    debugImplementation(libs.androidx.compose.ui.tooling)
 
     platform(libs.yukihook.bom).apply {
         implementation(this)
         ksp(this) }
-
     implementation(libs.yukihook.core)
     implementation(libs.yukihook.extension.kavaref)
     implementation(libs.yukihook.runtime.libxposed)

@@ -1,4 +1,4 @@
-package xyz.thewhitedog9487.freeunlock.xposed
+package xyz.thewhitedog9487.freeunlock.Xposed
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -51,8 +51,9 @@ object HookMain : YukiHookXposedModule{
     lateinit var SystemServerContext: Context
     lateinit var TargetClassInstance: Any
     val TestActionFilter = IntentFilter("xyz.thewhitedog9487.freeunlock.action.TEST")
-    var IsEnabled = true
-    var SkipNext = false
+    @Volatile var IsEnabled = true
+    @Volatile var IsHookInstalled = false
+    @Volatile var SkipNext = false
     val CurrentUserId: Int? get() {
         return classOf<ActivityManager>()
             .resolve()
@@ -75,6 +76,36 @@ object HookMain : YukiHookXposedModule{
             finally {
                 Binder.restoreCallingIdentity(Token) } }
 
+    /**
+     * 临时放行一次强认证调度请求，用来让系统立刻要求一次强认证
+     * @return 是否成功发起了调度请求
+     */
+    fun ForceStrongAuth(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            YLog.error("Android 11以下的版本不支持设置自定义到期时间的闹钟")
+            return false }
+        YLog.info("正在尝试触发强认证调度请求")
+        val UserID = CurrentUserId ?: run {
+            YLog.error("无法获取当前用户ID，已取消本次强认证调度请求")
+            return false }
+        val Succeeded = runCatching {
+            val ExpiredTime = SystemClock.elapsedRealtime() - GetAlarmTimeoutForTargetUser(UserID) - 1_000L
+            SkipNext = true
+            YLog.info("已设置SkipNext属性为true，本次强认证调度请求将被放行。")
+            TargetClassInstance
+                .asResolver()
+                .firstMethod {
+                    name = HookMethodName
+                    parameters( *HookMethodParametersList.toTypedArray() ) }
+                .invoke( ExpiredTime, UserID ) }
+            .onFailure {
+                YLog.error("触发强认证调度请求失败", it)
+                SkipNext = false
+                YLog.warn("由于出现灾难性错误，已经将SkipNext重置为false") }
+            .isSuccess
+        if (Succeeded) YLog.info("已成功触发强认证调度请求")
+        return Succeeded }
+
     val TestActionReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             try {
@@ -87,37 +118,17 @@ object HookMain : YukiHookXposedModule{
                         YLog.info("已禁用FreeUnlock。") }
                     "test" -> {
                         YLog.warn("收到测试命令")
-                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-                            YLog.error("Android 11以下的版本不支持设置自定义到期时间的闹钟")
-                            return }
-                        YLog.info("正在尝试触发强认证调度请求")
-                        val UserID = CurrentUserId ?: run {
-                            YLog.error("无法获取当前用户ID，已取消本次测试请求")
-                            return }
-                        val ExpiredTime = SystemClock.elapsedRealtime() - GetAlarmTimeoutForTargetUser(UserID) - 1_000L
-                        SkipNext = true
-                        YLog.info("已设置SkipNext属性为true，本次强认证调度请求将被放行。")
-                        runCatching {
-                            TargetClassInstance
-                                .asResolver()
-                                .firstMethod {
-                                    name = HookMethodName
-                                    parameters( *HookMethodParametersList.toTypedArray() ) }
-                                .invoke( ExpiredTime, UserID )
-                        }.onFailure {
-                            YLog.error("触发强认证调度请求失败", it)
-                            SkipNext = false
-                            YLog.warn("由于出现灾难性错误，已经将SkipNext重置为false") } }
+                        ForceStrongAuth() }
                     else -> {
                         YLog.error("收到未知命令：$Command") } }
             } catch (ExceptionInstance: Exception) {
                 YLog.error("处理广播接收器时发生未被处理的异常", ExceptionInstance) } } }
 
-    @Volatile
-    var TestActionReceiverRegistered = false
+    @Volatile var TestActionReceiverRegistered = false
 
     override fun onInit() = configure {
         logging {
+            recording = true
             tag = LogTag }
         debug = BuildConfig.DEBUG }
 
@@ -148,6 +159,21 @@ Android 11.0   30       R        R                              ↑             
 Android 11+                                                     ↑                                                        ↑
 */
             YLog.info("成功注入系统框架")
+            dataChannel.with {
+                wait(DataChannelKeys.Query_HookStatus) {
+                    YLog.info("收到App发出的查询Hook注入状态请求")
+                    put(DataChannelKeys.Response_HookSuccess, IsHookInstalled)
+                    put(DataChannelKeys.Response_HookEnabled, IsEnabled) }
+                wait(DataChannelKeys.Set_HookEnabled) { NewValue ->
+                    YLog.info("收到App发出的更改模块功能启用状态请求，新的工作状态为 $NewValue")
+                    IsEnabled = NewValue
+                    YLog.info("根据App请求，模块工作状态已调整为 ${IsEnabled}") }
+                wait(DataChannelKeys.Request_ClearLogs) {
+                    YLog.clear()
+                    YLog.info("收到App发出的清除日志请求，已完成清理") }
+                wait(DataChannelKeys.Request_ForceStrongAuth) {
+                    YLog.info("收到App发出的强认证调度请求")
+                    put(DataChannelKeys.Response_StrongAuthAlarmScheduleSuccess, ForceStrongAuth()) } }
             HookClassName
                 .toClass()
                 .resolve()
@@ -194,4 +220,7 @@ Android 11+                                                     ↑             
                                 YLog.error("注册调试用广播接收器时发生未被处理的异常", ExceptionInstance)
                                 return@after }
                             TestActionReceiverRegistered = true } } }
-            YLog.info("成功注入${HookClassName}构造函数") } } }
+            YLog.info("成功注入${HookClassName}构造函数")
+            // 两处Hook都安装成功之后才向App报告注入成功
+            IsHookInstalled = true
+            YLog.info("Hook注入完成") } } }
