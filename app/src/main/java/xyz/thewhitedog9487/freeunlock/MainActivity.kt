@@ -20,18 +20,25 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -51,13 +58,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -73,7 +84,10 @@ import com.highcapable.yukihookapi.hook.log.data.YLogData
 import com.highcapable.yukihookapi.hook.xposed.application.ModuleApplication
 import com.highcapable.yukihookapi.hook.xposed.scope.YukiHookModuleScope
 import xyz.thewhitedog9487.freeunlock.UI.Composable.LinkRow
+import xyz.thewhitedog9487.freeunlock.UI.Composable.ScrollToTopBottomButtons
 import xyz.thewhitedog9487.freeunlock.UI.Composable.StatusRow
+import xyz.thewhitedog9487.freeunlock.UI.Composable.VerticalScrollBar
+import xyz.thewhitedog9487.freeunlock.UI.Composable.rememberScrollBarMetrics
 import xyz.thewhitedog9487.freeunlock.UI.Icon.Icons
 import xyz.thewhitedog9487.freeunlock.UI.Theme.FreeUnlockTheme
 import xyz.thewhitedog9487.freeunlock.Xposed.DataChannelKeys
@@ -82,6 +96,10 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.onFailure
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 class FreeUnlockApplication: ModuleApplication()
 class MainActivity: ComponentActivity() {
@@ -135,8 +153,13 @@ class ModuleStatusState {
 @Composable
 fun MainUI() {
     var SelectedTab by rememberSaveable { mutableStateOf(MainTabs.Home) }
+    val LogListState = rememberLazyListState()
+    val CoroutineScope = rememberCoroutineScope()
     val Status = remember { ModuleStatusState() }
     val AppContext = LocalContext.current.applicationContext
+    val HistoryEnabled = Status.IsHookConnected == true
+    val VisibleTabs = remember(HistoryEnabled) {
+        MainTabs.entries.filter { Tab -> Tab != MainTabs.LogHistory || HistoryEnabled } }
 
     DisposableEffect(Unit) {
         val MainHandler = Handler(Looper.getMainLooper())
@@ -176,17 +199,42 @@ fun MainUI() {
     LaunchedEffect(Unit) {
         Status.RequestStatus(AppContext) }
 
+    LaunchedEffect(Status.IsHookConnected) {
+        if (Status.IsHookConnected == false && SelectedTab == MainTabs.LogHistory) {
+            SelectedTab = MainTabs.Home } }
+
+    val PagerState = remember(HistoryEnabled) {
+        val InitialTab = if (SelectedTab in VisibleTabs) SelectedTab else MainTabs.Home
+        PagerState(
+            currentPage = VisibleTabs.indexOf(InitialTab),
+            pageCount = { VisibleTabs.size } ) }
+
+    LaunchedEffect(PagerState, VisibleTabs) {
+        snapshotFlow { PagerState.settledPage }
+            .collect { Page ->
+                VisibleTabs.getOrNull(Page)?.let { Tab ->
+                    if (SelectedTab != Tab) SelectedTab = Tab } } }
+
+    val HighlightedTab = if (SelectedTab in VisibleTabs) SelectedTab else MainTabs.Home
+
     FreeUnlockTheme {
         Scaffold(
             bottomBar = { BottomNavigationBar(
                 Status = Status,
-                SelectedTab = SelectedTab,
-                onTabChange = { SelectedTab = it } ) },
+                SelectedTab = HighlightedTab,
+                onTabChange = { Tab ->
+                    val TargetPage = VisibleTabs.indexOf(Tab)
+                    if (TargetPage >= 0) {
+                        SelectedTab = Tab
+                        CoroutineScope.launch {
+                            PagerState.animateScrollToPage(TargetPage) } } } ) },
             modifier = Modifier.fillMaxSize() ) { InnerPadding ->
 
             MainContent(
                 Status = Status,
-                SelectedTab = SelectedTab,
+                VisibleTabs = VisibleTabs,
+                PagerState = PagerState,
+                LogListState = LogListState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(InnerPadding) ) } } }
@@ -194,13 +242,22 @@ fun MainUI() {
 @Composable
 fun MainContent(
     Status: ModuleStatusState,
-    SelectedTab: MainTabs,
-    modifier: Modifier = Modifier){
+    VisibleTabs: List<MainTabs>,
+    PagerState: PagerState,
+    LogListState: LazyListState,
+    modifier: Modifier = Modifier) {
 
-    when(SelectedTab){
-        MainTabs.Home -> HomeScreen(Status = Status, modifier = modifier)
-        MainTabs.LogHistory -> LogHistoryScreen(modifier = modifier)
-        MainTabs.About -> AboutScreen(modifier = modifier) } }
+    HorizontalPager(
+        state = PagerState,
+        beyondViewportPageCount = 1,
+        modifier = modifier ) { Page ->
+
+        when (VisibleTabs[Page]) {
+            MainTabs.Home -> HomeScreen(Status = Status, modifier = Modifier.fillMaxSize())
+            MainTabs.LogHistory -> LogHistoryScreen(
+                ListState = LogListState,
+                modifier = Modifier.fillMaxSize() )
+            MainTabs.About -> AboutScreen(modifier = Modifier.fillMaxSize()) } } }
 
 @Composable
 fun HomeScreen(Status: ModuleStatusState,
@@ -365,10 +422,26 @@ fun HomeScreen(Status: ModuleStatusState,
                         Text(text = stringResource(R.string.Home_OtherFeatures_OpenWirelessDebugging) ) } } } } } }
 
 @Composable
-fun LogHistoryScreen(modifier: Modifier = Modifier) {
+fun LogHistoryScreen(
+    ListState: LazyListState,
+    modifier: Modifier = Modifier) {
     val ActivityContext = LocalContext.current
     val AppContext = ActivityContext.applicationContext
     var Logs by remember { mutableStateOf(emptyList<YLogData>()) }
+    val CoroutineScope = rememberCoroutineScope()
+    val ScrollMetrics by rememberScrollBarMetrics(ListState)
+    var ShowScrollControls by remember { mutableStateOf(false) }
+
+    LaunchedEffect(ListState, ScrollMetrics.HasOverflow) {
+        if (ScrollMetrics.HasOverflow) {
+            if (ListState.isScrollInProgress == false) ShowScrollControls = true
+            snapshotFlow { ListState.isScrollInProgress }
+                .collectLatest { Scrolling ->
+                    if (Scrolling) ShowScrollControls = false
+                    else {
+                        delay(1_000L.milliseconds)
+                        ShowScrollControls = true } } }
+        else ShowScrollControls = false }
 
     val ShareLogsTitle = stringResource(R.string.TopBar_ShareLogs)
 
@@ -462,52 +535,79 @@ fun LogHistoryScreen(modifier: Modifier = Modifier) {
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant )
         } else {
-            LazyColumn(modifier = Modifier.weight(1f)) {
-                items(Logs) { LogData ->
-                    val PriorityColors = when (LogData.priority) {
-                        "D" -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-                        "I" -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-                        "W" -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-                        "E" -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-                        else -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer }
+            Box(modifier = Modifier.weight(1f)) {
+                LazyColumn(
+                    state = ListState,
+                    modifier = Modifier.fillMaxSize() ) {
 
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding( horizontal = 24.dp, vertical = 8.dp) ) {
+                    items(Logs) { LogData ->
+                        val PriorityColors = when (LogData.priority) {
+                            "D" -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+                            "I" -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+                            "W" -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+                            "E" -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+                            else -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer }
 
-                        Column(modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding( horizontal = 24.dp, vertical = 8.dp) ) {
 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)) {
+
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = LogData.priority,
+                                        color = PriorityColors.second,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier
+                                            .clip(MaterialTheme.shapes.extraSmall)
+                                            .background(PriorityColors.first)
+                                            .padding(horizontal = 8.dp, vertical = 4.dp) )
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Text(
+                                        text = LogData.time,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant ) }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
                                 Text(
-                                    text = LogData.priority,
-                                    color = PriorityColors.second,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier
-                                        .clip(MaterialTheme.shapes.extraSmall)
-                                        .background(PriorityColors.first)
-                                        .padding(horizontal = 8.dp, vertical = 4.dp) )
-                                Spacer(modifier = Modifier.weight(1f))
-                                Text(
-                                    text = LogData.time,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant ) }
+                                    text = LogData.msg,
+                                    style = MaterialTheme.typography.bodyMedium )
 
-                            Spacer(modifier = Modifier.height(4.dp))
+                                LogData.throwable?.let {
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = it.stackTraceToString(),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = MaterialTheme.colorScheme.error ) } } } } }
 
-                            Text(
-                                text = LogData.msg,
-                                style = MaterialTheme.typography.bodyMedium )
+                VerticalScrollBar(
+                    ListState = ListState,
+                    Metrics = ScrollMetrics,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .fillMaxHeight()
+                        .padding(vertical = 8.dp) )
 
-                            LogData.throwable?.let {
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = it.stackTraceToString(),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontFamily = FontFamily.Monospace,
-                                    color = MaterialTheme.colorScheme.error ) } } } } } } } }
+                ScrollToTopBottomButtons(
+                    Visible = ShowScrollControls && ScrollMetrics.HasOverflow,
+                    AtTop = ScrollMetrics.AtTop,
+                    AtBottom = ScrollMetrics.AtBottom,
+                    OnScrollToTop = {
+                        CoroutineScope.launch {
+                            ListState.animateScrollToItem(0) } },
+                    OnScrollToBottom = {
+                        CoroutineScope.launch {
+                            ListState.animateScrollToItem(
+                                (ListState.layoutInfo.totalItemsCount - 1).coerceAtLeast(0) ) } },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp) ) } } } }
 
 @Composable
 fun AboutScreen(modifier: Modifier = Modifier){
@@ -597,9 +697,28 @@ fun BottomNavigationBar(
     onTabChange: (MainTabs) -> Unit,
     modifier: Modifier = Modifier ){
 
-    NavigationBar(modifier = modifier) {
+    val Tabs = MainTabs.entries
+    val CurrentOnTabChange by rememberUpdatedState(onTabChange)
 
-        for (Tab in MainTabs.entries) {
+    NavigationBar(
+        modifier = modifier.pointerInput(Tabs.size) {
+            var LastIndex = -1
+
+            detectHorizontalDragGestures(
+                onDragStart = { Position ->
+                    LastIndex = (Position.x / size.width * Tabs.size)
+                        .toInt().coerceIn(0, Tabs.lastIndex)
+                    CurrentOnTabChange(Tabs[LastIndex]) },
+                onDragEnd = { LastIndex = -1 },
+                onDragCancel = { LastIndex = -1 },
+                onHorizontalDrag = { Change, _ ->
+                    val Index = (Change.position.x / size.width * Tabs.size)
+                        .toInt().coerceIn(0, Tabs.lastIndex)
+                    if (Index != LastIndex) {
+                        LastIndex = Index
+                        CurrentOnTabChange(Tabs[Index]) } } ) } ) {
+
+        for (Tab in Tabs) {
             NavigationBarItem(
                 enabled = if (Tab != MainTabs.LogHistory) true else (Status.IsHookConnected == true),
                 icon = {

@@ -1,2 +1,6 @@
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
 app/src/main/java/xyz/thewhitedog9487/freeunlock/UI/Icon/** linguist-generated
 app/src/main/java/xyz/thewhitedog9487/freeunlock/UI/Theme/** linguist-generated

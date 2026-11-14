@@ -46,6 +46,8 @@
     <string name="Home_OtherFeatures_OpenWirelessDebugging_Failed">Failed to open wireless debugging</string>
 
     <string name="LogHistory_Empty">Nothing here yet</string>
+    <string name="LogHistory_ScrollToTop">Scroll to top</string>
+    <string name="LogHistory_ScrollToBottom">Scroll to bottom</string>
     <string name="LogHistory_ExportFailed">Failed to export logs</string>
     <string name="LogHistory_ShareFailed">Failed to share logs</string>
 

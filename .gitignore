@@ -10,3 +10,4 @@
 /.kotlin
 xposed_init
 yukihookapi_init
+*:Zone.Identifier

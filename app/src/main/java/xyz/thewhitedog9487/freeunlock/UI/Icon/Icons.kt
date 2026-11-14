@@ -19,4 +19,6 @@ object Icons {
     val QuestionMark = question_mark
     val Adb = adb
     val Commit = commit
+    val ArrowUpward = arrow_upward
+    val ArrowDownward = arrow_downward
 }

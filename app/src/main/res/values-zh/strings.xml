@@ -13,12 +13,12 @@
     <string name="TopBar_ShareLogs">分享</string>
 
     <string name="Home_ModuleStatus_Active">模块已激活</string>
-    <string name="Home_ModuleStatus_ActiveDescription">正常工作中(○｀ 3′○)</string>
+    <string name="Home_ModuleStatus_ActiveDescription">正常工作中 (○｀ 3′○)</string>
     <string name="Home_ModuleStatus_Checking">检测中</string>
     <string name="Home_ModuleStatus_Inactive">模块未激活</string>
     <string name="Home_ModuleStatus_InactiveDescription_TapToActivate">点击这里激活模块</string>
-    <string name="Home_ModuleStatus_InactiveDescription_NoXposedFramework">请先安装一个支持libxposed的框架</string>
-    <string name="Home_ModuleStatus_InactiveDescription_NeedReboot">已启用模块但尚未注入系统框架，请重启设备后生效</string>
+    <string name="Home_ModuleStatus_InactiveDescription_NoXposedFramework">请先安装一个支持libxposed的Xposed框架</string>
+    <string name="Home_ModuleStatus_InactiveDescription_NeedReboot">已启用模块但尚未注入系统框架，请重启设备以使模块生效</string>
 
     <string name="Home_XposedFrameworkInfo">框架信息</string>
     <string name="Home_XposedFrameworkInfo_FrameworkStatus">框架状态</string>
@@ -47,6 +47,8 @@
     <string name="Home_OtherFeatures_OpenWirelessDebugging_Failed">无法打开无线调试</string>
 
     <string name="LogHistory_Empty">啥也木有</string>
+    <string name="LogHistory_ScrollToTop">滚动到顶部</string>
+    <string name="LogHistory_ScrollToBottom">滚动到底部</string>
     <string name="LogHistory_ExportFailed">导出日志失败</string>
     <string name="LogHistory_ShareFailed">分享日志失败</string>
 
